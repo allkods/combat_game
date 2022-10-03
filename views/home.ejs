@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="token" content="<%= token %>">
+    <meta name="user" content="<%= user %>">
+    <title>Combat game by allkods.com</title>
+    <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400&display=swap" rel="stylesheet">
+    <script src="/js/three.min.js"></script>
+    <script src="/js/FBXLoader.js"></script>
+    <script src="/js/inflate.min.js"></script>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            touch-action: none;
+            background-image: url(/images/bk2.png);
+            background-color: black;
+            background-size: 450px;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        #buttons{
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 60px;
+            width: 400px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #buttons>button{
+            width: 45%;
+            height: 100%;
+            font-size: 18px;
+            cursor: pointer;
+            border:none;
+            transition: all 300ms ease;
+        }
+        #buttons>button:hover{
+            transform: scale(1.1);
+            background: rgb(226, 226, 226);
+        }
+        #create,#join,#message{
+            height: 300px;
+            width: 400px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            background: white;
+            display: none;
+        }
+      
+        #roomid{
+            text-align: center;
+            font-size: 30px;
+            padding: 10px 0;
+        }
+        #joined{
+            padding: 25px;
+        }
+        #joined>ul{
+            font-size: 18px;
+            list-style-type: none;
+        }
+        #joined>ul>li{
+            margin: 5px 0;
+            color: purple;
+        }
+        #proceed{
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 50px;
+            width: 150px;
+            cursor: pointer;
+            border:none;
+            font-size: 20px;
+        }
+
+
+
+        #join{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+        #message{
+            z-index: 10;
+        }
+        #msg{
+            font-size: 20px;
+            color: rgb(219, 0, 0);
+            padding: 15px 0;
+        }
+        #tojoininput,#tojoinbtn,#proceed{
+            width: 70%;
+            height: 50px;
+            margin: 5px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+        #tojoinbtn,#proceed{
+            background: purple;
+            color: whitesmoke;
+            border: none;
+            cursor: pointer;
+        }
+        #tojoinbtn:hover,#proceed:hover{
+            background: rgb(221, 221, 221);
+            color: #0c0c0c;
+        }
+        #close,#Cclose{
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 50px;
+            width: 50px;
+            background: rgb(219, 0, 0);
+            color: whitesmoke;
+            border: none;
+            cursor:pointer;
+            font-size: 20px;
+        }
+        #close:hover,#Cclose:hover{
+            background: rgb(194, 0, 0);
+        }
+
+        #message{
+            padding: 20px;
+        }
+        #message>p{
+            font-size: 25px;
+            margin: auto;
+            text-align: center;
+        }
+
+
+
+        #loader{
+    height: 100%;
+    width: 100%;
+    background: rgba(0,0,0,.9);
+    position: fixed;
+    z-index: 100;
+}
+#rounder{
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    border: 4px solid white;
+    background: transparent;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    box-sizing: border-box;
+    animation: rot 2s infinite linear;
+}
+#rounder::before{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 60px;
+    width: 60px;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    border-top-color: rgb(0, 95, 219);
+    box-sizing: border-box;
+    transform: translate(-6%,-6%);
+}
+#loader>p{
+    color: whitesmoke;
+    font-size: 24px;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align:center;
+}
+
+@keyframes rot{
+    0%{transform: translate(-50%,-50%) rotate(0deg);}
+    100%{transform: translate(-50%,-50%) rotate(360deg);}
+}
+
+#charactercnt{
+    position: absolute;
+    height: 100vh;
+    width: 100%;
+    background: #0c0c0c;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+#charactercnt>p{
+    position: absolute;
+    bottom: 20px;
+    color: whitesmoke;
+    font-size: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+#characters{
+    height: 220px;
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+}
+#characters>button{
+    height: 35px;
+    width: 100%;
+    font-size: 35px;
+    cursor: pointer;
+    border:none;
+    
+}
+#cdownbtn{
+    transform: rotate(180deg);
+}
+#charimages{
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+#charimages>div{
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+#charimages>div>*{
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}
+#charimages>div>div{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: whitesmoke;
+}
+#charimages>div>input{
+    opacity: 0;
+}
+#players-status{
+    background: white;
+    height: 220px;
+    width: 200px;
+    position: relative;
+}
+#psCnt>p{
+    padding: 3px 10px;
+}
+#players-status>button{
+    height: 40px;
+    padding: 0 30px;
+    border: none;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+    background: rgb(219, 0, 0);
+    color: whitesmoke;
+    display: none;
+}
+#touchtoFS{
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    z-index: 99;
+    background: white;
+    display: flex;
+}
+/************************************************************/
+
+#gamediv{
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    display: none;
+    z-index: 98;
+    background: white;
+}
+#touchtostart{
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    z-index: 99;
+    background: rgba(255,255,255,.7);
+    display: none;
+}
+#touchtostart>p,#touchtoFS>p{
+    font-size: 20px;
+    margin: auto;
+}
+
+
+#topleft{
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 60px;
+            width: 200px;
+            background: rgba(255, 255, 255,.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+        }
+        #blood,#power{
+            height: 6px;
+            border-radius: 10px;
+            width: 90%;
+        }
+        #blood{
+            background: rgb(255, 176, 176);
+        }
+        #power{
+            background: rgb(216, 239, 255);
+        }
+        #bloodline{
+            background: rgb(228, 0, 0);
+            width: 0;
+            height: 100%;
+            transition: all ease-in-out;
+        }
+        #powerline{
+            background: rgb(0, 175, 228);
+            width: 0;
+            height: 100%;
+            box-shadow: 0 0 4px rgb(0, 175, 228);
+            transition: all ease-in-out;
+        }
+        #mobcontrols{
+            position: absolute;
+            height: 100vh;
+            width: 100%;
+            z-index: 10;
+        }
+
+        #touchmover{
+            position: absolute;
+            height: 100vh;
+            width: 100%;
+        }
+
+        #joystickcnt{
+            height: 80px;
+            width: 80px;
+            position: absolute;
+            bottom: 80px;
+            left: 80px;
+            border: 1px solid rgba(255,255,255,.5);
+            border-radius: 50%;
+        }
+        #joystickcnt::before{
+            content: '';
+            position: absolute;
+            height: 60px;
+            width: 60px;
+            border-radius: 50%;
+            left: 10px;
+            bottom: 10px;
+            border: 2px solid transparent;
+            border-left-color:rgba(255,255,255,.5);
+            box-sizing: border-box;
+        }
+        #joystick{
+            height: 70px;
+            width: 70px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.2);
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            transition: all ease;
+        }
+        #jsToucher{
+            position: absolute;
+            height: 200px;
+            width: 200px;
+            background: rgb(0,0,0,.5);
+            bottom: 80px;
+            left: 80px;
+            transform: translate(-60px,60px);
+            z-index: 1;
+            border-radius: 50%;
+        }
+    
+        #rightcontrols{
+            position: absolute;
+            height: 40px;
+            width: 40px;
+            bottom: 0px;
+            right: 0px;
+        }
+        #rightcontrols>div{
+            height: 40px;
+            width: 40px;
+            background: rgba(255,255,255,.2);
+            position: absolute;
+            border-radius: 50%;
+            border:none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #rightcontrols>div:hover{
+            background: rgba(255,255,255,.5);
+        }
+        #rightcontrols>div>svg{
+            height: 60%;
+            width: 60%;
+        }
+        #attack{
+            transform: rotate(-170deg) translateX(150px);
+        }
+        #defend{
+            transform: rotate(-145deg) translateX(150px);
+        }
+        #powerup{
+            transform: rotate(-120deg) translateX(150px);
+        }
+        #rightcontrols>#powerattack{
+            transform: rotate(-95deg) translateX(150px);
+            border: 2px solid rgba(255,255,255,.2);
+            box-sizing: border-box;
+            background: transparent;
+            /*animation: poweranim 2s infinite ease-in-out;
+            box-shadow: 0 0 10px #175ce9;*/
+        }
+        #powerattack::before{
+            content:'';
+            position: absolute;
+            height: 30px;
+            width: 30px;
+            left: 3.5px;
+            bottom: 3.5px;
+            background: rgba(255,255,255,.2);
+            border-radius: 50%;
+        }
+        @keyframes poweranim{
+            0%{
+                transform: rotate(-95deg) translateX(130px) scale(.8);
+            }
+            50%{
+                transform: rotate(-95deg) translateX(130px) scale(1);
+            }
+            100%{
+                transform: rotate(-95deg) translateX(130px) scale(.8);
+            }
+        }
+       
+
+        #attack>svg{
+            transform: rotate(170deg);
+        }
+        #defend>svg{
+            transform: rotate(145deg);
+        }
+        #powerup>svg{
+            transform: rotate(120deg);
+        }
+        #backgroundSong{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">
+        <div id="rounder"></div>
+    </div>
+    <div id="buttons">
+        <button id="createbtn">Create room</button>
+        <button id="joinbtn">Join room</button>
+    </div>
+    <div id="create">
+        <button id="Cclose">X</button>
+        <p id="roomid">room id: 445620</p>
+        <div id="joined">
+            <ul>
+               
+            </ul>
+        </div>
+        <button id="proceed">Proceed</button>
+    </div>
+    <div id="join">
+        <button id="close">X</button>
+        <input type="text" id="tojoininput" placeholder="Enter room code to join">
+        <button id="tojoinbtn">Join</button>
+        <!--<p id="msg">room is full...</p>-->
+    </div>
+    <div id="message"></div>
+    <div id="charactercnt">
+        <div id="characters">
+            <button id="cupbtn">^</button>
+            <div id="charimages">
+                <div class="char-cnt">
+                    <img src="/images/ely-img.JPG" alt="">
+                    <div id="char-ely"></div>
+                    <input type="radio" name="charselec" value="ely">
+                </div>
+                <div class="char-cnt">
+                    <img src="/images/crypto-img.JPG" alt="">
+                    <div id="char-crypto"></div>
+                    <input type="radio" name="charselec" value="crypto">
+                </div>
+                <div class="char-cnt">
+                    <img src="/images/dreyar-img.JPG" alt="">
+                    <div id="char-dreyar"></div>
+                    <input type="radio" name="charselec" value="dreyar">
+                </div>
+                <div class="char-cnt">
+                    <img src="/images/heraklios-img.JPG" alt="">
+                    <div id="char-heraklios"></div>
+                    <input type="radio" name="charselec" value="heraklios">
+                </div>
+    
+            </div>
+            <button id="cdownbtn">^</button>
+        </div>
+        <div id="players-status">
+            <div id="psCnt">
+            
+            </div>
+            <button id="main-start-btn">START</button>
+            <button id="ready-btn">Ready</button>
+            <button id="s-cancel-btn">Cancel</button>
+        </div>
+        <p>please select a character before they are occupied by others</p>
+    </div>
+    <div id="touchtoFS"><p>click or touch to enter Full Screen</p></div>
+
+<!-- ------------------------------------------------------------------------------------- -->
+
+<div id="gamediv">
+    <div id="touchtostart"><p>waiting for all players to join</p></div>
+    <div id="topleft">
+        <div id="blood">
+            <div id="bloodline"></div>
+        </div>
+        <div id="power">
+            <div id="powerline"></div>
+        </div>
+
+    </div>
+
+    <div id="mobcontrols">
+        <div id="touchmover"></div>
+        <div id="jsToucher"></div>
+        
+        <div id="joystickcnt"><div id="joystick"></div></div>
+        <div id="rightcontrols">
+            <div id="attack"><%- include('inc/attack') %></div>
+            <div id="defend"><%- include('inc/defend') %></div>
+            <div id="powerup"><%- include('inc/powerUp') %></div>
+            <div id="powerattack"></div>
+        </div>
+
+    </div>
+       
+
+</div>
+    
+    <audio id="backgroundSong" src="/music/music1.mp3" />
+
+    <script src="/js/home.js"></script>
+</body>
+</html>
